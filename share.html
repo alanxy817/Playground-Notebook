@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人中转站</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f4f7f6;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 { margin-top: 0; color: #333; text-align: center; }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-size: 15px;
+            outline: none;
+        }
+        textarea:focus { border-color: #007bff; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0056b3; }
+        .status {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+            color: #666;
+        }
+        .history-box {
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .history-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        .content-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #e9ecef;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📋 个人数据中转站</h2>
+    <textarea id="textInput" placeholder="在此输入需要传输的文字、链接..."></textarea>
+    <button id="sendBtn" onclick="sendData()">📤 发送到云端</button>
+    <div class="status" id="statusText">准备就绪</div>
+
+    <div class="history-box">
+        <div class="history-title">最近一次接收到的内容：</div>
+        <div class="content-display" id="receiveBox">正在拉取云端数据...</div>
+        <button id="copyBtn" style="background:#28a745; margin-top: 10px;" onclick="copyText()">📋 一键复制内容</button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // ⚙️ 填写你自己的配置信息
+    // ==========================================
+    const CONFIG = {
+        token: "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", 
+        owner: "alanxy817",     
+        repo: "Playground-Notebook",             
+        filepath: "transfer.txt"       // 云端中转文件名
+    };
+    // ==========================================
+
+    const textInput = document.getElementById('textInput');
+    const statusText = document.getElementById('statusText');
+    const receiveBox = document.getElementById('receiveBox');
+    let fileSha = ""; // 更改 GitHub 文件需要获取它的 SHA 标识
+
+    // 从 GitHub 获取最新内容
+    async function fetchData() {
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filepath}`;
+        try {
+            const res = await fetch(url, {
+                headers: { "Authorization": `token ${CONFIG.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                fileSha = data.sha;
+                // Base64 解码中文内容
+                const decodedText = decodeURIComponent(escape(atob(data.content)));
+                receiveBox.innerText = decodedText;
+                statusText.innerText = "最新数据拉取成功！";
+            } else if (res.status === 404) {
+                receiveBox.innerText = "暂无中转内容，请在上方输入并发送第一条。";
+                statusText.innerText = "云端文件不存在，发送后会自动创建。";
+            }
+        } catch (e) {
+            receiveBox.innerText = "拉取失败，请检查配置或网络。";
+        }
+    }
+
+    // 往 GitHub 发送新内容
+    async function sendData() {
+        const text = textInput.value.trim();
+        if (!text) return alert("请输入内容！");
+        statusText.innerText = "正在发送...";
+
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filepath}`;
+        // Base64 编码中文内容
+        const encodedText = btoa(unescape(encodeURIComponent(text)));
+
+        const body = {
+            message: "Update transfer text via web tool",
+            content: encodedText
+        };
+        if (fileSha) body.sha = fileSha; // 如果文件已存在，必须带上 sha 才能覆盖
+
+        try {
+            const res = await fetch(url, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${CONFIG.token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                statusText.innerText = "🚀 发送成功！";
+                textInput.value = "";
+                fetchData(); // 重新加载
+            } else {
+                statusText.innerText = "❌ 发送失败，请检查 Token 权限。";
+            }
+        } catch (e) {
+            statusText.innerText = "❌ 网络异常，发送失败。";
+        }
+    }
+
+    // 一键复制
+    function copyText() {
+        navigator.clipboard.writeText(receiveBox.innerText);
+        alert("已复制到剪贴板！");
+    }
+
+    // 初始化加载
+    fetchData();
+</script>
+
+</body>
+</html>
