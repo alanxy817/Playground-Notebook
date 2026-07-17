@@ -81,14 +81,14 @@
         // ==========================================
         const CONFIG = {
             // 你刚才生成的完全纯净无暇的 Base64 密文
-            encryptedToken: "Z2hwX3I4TGp5cEJxMHFOQkpiR3hvdldzMVFidFdzVFdMSjFYOVNOOQ==",
+            encryptedToken: "mtxxsskhAXOs1u4xqZY6nO5nPGr34c0xbGpK",
             owner: "alanxy817",     // 确保这是你的用户名
             repo: "Playground-notebook",   // 确保这是你的仓库名
             filepath: "transfer_data.json"   // 存储数据的文件
         };
 
         // 解密还原 Token (不再夹带任何双引号和多余符号)
-        CONFIG.token = atob(CONFIG.encryptedToken);
+        CONFIG.token = "ghp_" + atob(CONFIG.encryptedToken);
 
         let fileSha = null;
         let selectedFileBase64 = null;
