@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人中转站</title>
+    <title>我的全能数据中转站</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -20,19 +20,38 @@
             width: 100%;
             max-width: 500px;
         }
-        h2 { margin-top: 0; color: #333; text-align: center; }
+        h2 { margin-top: 0; color: #333; text-align: center; margin-bottom: 5px; }
+        .nav-link { text-align: center; margin-bottom: 20px; }
+        .nav-link a { color: #007bff; text-decoration: none; font-size: 14px; font-weight: bold; }
+        
+        /* 文件拖拽/上传区域 */
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8fbff;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 15px;
+        }
+        .upload-area:hover { background: #eef5ff; }
+        #fileInput { display: none; }
+        
         textarea {
             width: 100%;
-            height: 150px;
+            height: 100px;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
             resize: vertical;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
+            margin-bottom: 15px;
         }
         textarea:focus { border-color: #007bff; }
+        
         button {
             width: 100%;
             padding: 12px;
@@ -43,51 +62,87 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 15px;
             transition: background 0.2s;
         }
         button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
         .status {
             text-align: center;
             font-size: 14px;
             margin-top: 10px;
             color: #666;
+            font-weight: bold;
         }
+        
+        /* 接收展示区域 */
         .history-box {
             margin-top: 25px;
             border-top: 1px solid #eee;
             padding-top: 20px;
         }
-        .history-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #444;
-        }
+        .history-title { font-weight: bold; margin-bottom: 10px; color: #444; }
+        
         .content-display {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
-            white-space: pre-wrap;
-            word-break: break-all;
             border: 1px solid #e9ecef;
             font-size: 14px;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
+        }
+        
+        /* 接收到的图片预览 */
+        #imgPreview {
+            max-width: 100%;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .file-info-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📋 个人数据中转站</h2>
-    <textarea id="textInput" placeholder="在此输入需要传输的文字、链接..."></textarea>
+    <h2>📋 全能数据中转站</h2>
+    <div class="nav-link"><a href="index.html">⬅️ 返回多边汇率计算器</a></div>
+    
+    <!-- 文件上传区域 -->
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <span id="uploadTip">📁 点击选择 或 拖拽图片/PDF到这里</span>
+        <input type="file" id="fileInput" onchange="handleFileSelect(event)">
+    </div>
+    
+    <textarea id="textInput" placeholder="或者在此输入需要传输的文字、链接..."></textarea>
+    
     <button id="sendBtn" onclick="sendData()">📤 发送到云端</button>
     <div class="status" id="statusText">准备就绪</div>
 
     <div class="history-box">
         <div class="history-title">最近一次接收到的内容：</div>
-        <div class="content-display" id="receiveBox">正在拉取云端数据...</div>
-        <button id="copyBtn" style="background:#28a745; margin-top: 10px;" onclick="copyText()">📋 一键复制内容</button>
+        <div class="content-display" id="receiveBox">
+            <span id="textShow">正在拉取云端数据...</span>
+            <!-- 图片预览 -->
+            <img id="imgPreview" src="" alt="预览图片">
+            <!-- 文件下载条 -->
+            <div class="file-info-box" id="fileDownloadBox">
+                <span id="fileNameLabel" style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">未知文件</span>
+                <a id="downloadBtn" href="#" download="" style="background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold;">下载</a>
+            </div>
+        </div>
+        <button id="copyBtn" style="background:#6c757d; margin-top: 15px; display: none;" onclick="copyText()">📋 复制文本</button>
     </div>
 </div>
 
@@ -99,14 +154,43 @@
         token: "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", 
         owner: "alanxy817",     
         repo: "Playground-Notebook",             
-        filepath: "transfer.txt"       // 云端中转文件名
+        filepath: "transfer_data.json"   // 云端中转数据包
     };
     // ==========================================
 
     const textInput = document.getElementById('textInput');
     const statusText = document.getElementById('statusText');
     const receiveBox = document.getElementById('receiveBox');
-    let fileSha = ""; // 更改 GitHub 文件需要获取它的 SHA 标识
+    const textShow = document.getElementById('textShow');
+    const imgPreview = document.getElementById('imgPreview');
+    const fileDownloadBox = document.getElementById('fileDownloadBox');
+    const fileNameLabel = document.getElementById('fileNameLabel');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const uploadTip = document.getElementById('uploadTip');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let selectedFile = null;
+    let fileSha = "";
+
+    // 处理文件选择
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        selectedFile = file;
+        uploadTip.innerText = `已选中文件: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+        uploadTip.style.color = '#28a745';
+    }
+
+    // 文件转 Base64 异步方法
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
 
     // 从 GitHub 获取最新内容
     async function fetchData() {
@@ -118,36 +202,90 @@
             if (res.ok) {
                 const data = await res.json();
                 fileSha = data.sha;
-                // Base64 解码中文内容
-                const decodedText = decodeURIComponent(escape(atob(data.content)));
-                receiveBox.innerText = decodedText;
-                statusText.innerText = "最新数据拉取成功！";
+                
+                // 解析 JSON 数据包
+                const payload = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                
+                // 1. 初始化界面
+                textShow.style.display = 'none';
+                imgPreview.style.display = 'none';
+                fileDownloadBox.style.display = 'none';
+                copyBtn.style.display = 'none';
+
+                // 2. 判断传输类型
+                if (payload.type === 'text') {
+                    textShow.innerText = payload.content;
+                    textShow.style.display = 'block';
+                    copyBtn.style.display = 'block';
+                } else if (payload.type === 'file') {
+                    const isImage = payload.mime && payload.mime.startsWith('image/');
+                    
+                    if (isImage) {
+                        // 如果是图片，直接展示
+                        imgPreview.src = payload.content;
+                        imgPreview.style.display = 'block';
+                    }
+                    
+                    // 同时生成下载链接（适用于图片和PDF等所有文件）
+                    fileNameLabel.innerText = payload.fileName;
+                    downloadBtn.href = payload.content;
+                    downloadBtn.download = payload.fileName;
+                    fileDownloadBox.style.display = 'flex';
+                }
+                statusText.innerText = "最新数据已同步！";
             } else if (res.status === 404) {
-                receiveBox.innerText = "暂无中转内容，请在上方输入并发送第一条。";
-                statusText.innerText = "云端文件不存在，发送后会自动创建。";
+                textShow.innerText = "暂无数据。";
+                statusText.innerText = "云端为空，请发送数据。";
             }
         } catch (e) {
-            receiveBox.innerText = "拉取失败，请检查配置或网络。";
+            textShow.innerText = "数据获取失败，请检查配置。";
         }
     }
 
-    // 往 GitHub 发送新内容
+    // 发送数据到 GitHub 
     async function sendData() {
+        let payload = {};
         const text = textInput.value.trim();
-        if (!text) return alert("请输入内容！");
-        statusText.innerText = "正在发送...";
 
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filepath}`;
-        // Base64 编码中文内容
-        const encodedText = btoa(unescape(encodeURIComponent(text)));
-
-        const body = {
-            message: "Update transfer text via web tool",
-            content: encodedText
-        };
-        if (fileSha) body.sha = fileSha; // 如果文件已存在，必须带上 sha 才能覆盖
+        sendBtn.disabled = true;
+        statusText.innerText = "正在打包处理数据...";
 
         try {
+            if (selectedFile) {
+                // 如果选了文件
+                const base64Data = await fileToBase64(selectedFile);
+                payload = {
+                    type: 'file',
+                    fileName: selectedFile.name,
+                    mime: selectedFile.type,
+                    content: base64Data // base64 大数据
+                };
+            } else if (text) {
+                // 如果写了文字
+                payload = {
+                    type: 'text',
+                    content: text
+                };
+            } else {
+                alert("请先输入文字或选择文件！");
+                sendBtn.disabled = false;
+                statusText.innerText = "准备就绪";
+                return;
+            }
+
+            statusText.innerText = "正在推送到 GitHub...";
+            const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filepath}`;
+            
+            // 将整个 JSON 对象转成 Base64 发送给 GitHub 接口
+            const jsonStr = JSON.stringify(payload);
+            const encodedData = btoa(unescape(encodeURIComponent(jsonStr)));
+
+            const body = {
+                message: "Update transfer payload via portal",
+                content: encodedData
+            };
+            if (fileSha) body.sha = fileSha;
+
             const res = await fetch(url, {
                 method: "PUT",
                 headers: {
@@ -156,25 +294,51 @@
                 },
                 body: JSON.stringify(body)
             });
+
             if (res.ok) {
-                statusText.innerText = "🚀 发送成功！";
+                statusText.innerText = "🚀 传输完成！";
                 textInput.value = "";
-                fetchData(); // 重新加载
+                selectedFile = null;
+                uploadTip.innerText = "📁 点击选择 或 拖拽图片/PDF到这里";
+                uploadTip.style.color = '#666';
+                fetchData(); // 刷新获取
             } else {
-                statusText.innerText = "❌ 发送失败，请检查 Token 权限。";
+                statusText.innerText = "❌ 发送失败，请检查 Token 权限或大小限制。";
             }
         } catch (e) {
             statusText.innerText = "❌ 网络异常，发送失败。";
+        } finally {
+            sendBtn.disabled = false;
         }
     }
 
-    // 一键复制
+    // 复制文本
     function copyText() {
-        navigator.clipboard.writeText(receiveBox.innerText);
+        navigator.clipboard.writeText(textShow.innerText);
         alert("已复制到剪贴板！");
     }
 
-    // 初始化加载
+    // 支持拖拽文件上传
+    const uploadArea = document.querySelector('.upload-area');
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.background = '#eef5ff';
+    });
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.background = '#f8fbff';
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.background = '#f8fbff';
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            selectedFile = file;
+            uploadTip.innerText = `已放入文件: ${file.name}`;
+            uploadTip.style.color = '#28a745';
+        }
+    });
+
+    // 初始化
     fetchData();
 </script>
 
